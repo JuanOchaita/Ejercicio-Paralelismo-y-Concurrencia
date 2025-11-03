@@ -25,7 +25,7 @@ def download_pokemon(start=1, end=151, dir_name='pokemon_dataset'):
     os.makedirs(dir_name, exist_ok=True)
     base_url = 'https://raw.githubusercontent.com/HybridShivam/Pokemon/master/assets/imagesHQ'
 
-    print(f'\nDescargando {end - start} pokemones...\n')
+    #print(f'\nDescargando {end - start} pokemones...\n')
     start_time = time.time()
 
     for i in tqdm(range(start, end), desc='Descargando', unit='img'):
@@ -44,8 +44,8 @@ def download_pokemon(start=1, end=151, dir_name='pokemon_dataset'):
             tqdm.write(f'  Error descargando {file_name}: {e}')
 
     total_time = time.time() - start_time
-    print(f'  Descarga completada en {total_time:.2f} segundos')
-    print(f'  Promedio: {total_time / (end - start):.2f} s/img')
+    #print(f'  Descarga completada en {total_time:.2f} segundos')
+    #print(f'  Promedio: {total_time / (end - start):.2f} s/img')
 
     return total_time
 
@@ -58,7 +58,7 @@ def process_pokemon(n=150, dir_origin='pokemon_dataset', dir_name='pokemon_proce
     os.makedirs(dir_name, exist_ok=True)
     processed = []  # lista de nombres ya procesados
 
-    print(f'\nEsperando procesar {n} imágenes en total...\n')
+    #print(f'\nEsperando procesar {n} imágenes en total...\n')
     start_time = time.time()
 
     # Barra de progreso global
@@ -105,9 +105,9 @@ def process_pokemon(n=150, dir_origin='pokemon_dataset', dir_name='pokemon_proce
 
     pbar.close()
     total_time = time.time() - start_time
-    print(f'\nProcesamiento completado. {len(processed)} imágenes procesadas.')
-    print(f'Tiempo total: {total_time:.2f} segundos')
-    print(f'Promedio: {total_time / len(processed):.2f} s/img\n')
+    #print(f'\nProcesamiento completado. {len(processed)} imágenes procesadas.')
+    #print(f'Tiempo total: {total_time:.2f} segundos')
+    #print(f'Promedio: {total_time / len(processed):.2f} s/img\n')
 
     return processed, total_time
 
@@ -199,8 +199,8 @@ def parallel_processing(data=150, dir_name='pokemon_dataset', dir_processed='pok
 
     total_time = time.time() - start_time
 
-    print(f'Tiempo: {total_time:.4f}s')
-    print(f'Cores utilizados: {n_cores}')
+    #print(f'Tiempo: {total_time:.4f}s')
+    #print(f'Cores utilizados: {n_cores}')
     return total_time
 
 
