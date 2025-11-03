@@ -15,9 +15,9 @@ import shutil
 import threading
 
 # Multiprocessing (paralelismo)
-import multiprocessing
+import multiprocessing as mp
 
-def download_pokemon(n=150, dir_name='pokemon_dataset'):
+def download_pokemon(start=1, end=151, dir_name='pokemon_dataset'):
     '''
     Descarga las imágenes de los primeros n Pokemones.
     '''
@@ -25,10 +25,10 @@ def download_pokemon(n=150, dir_name='pokemon_dataset'):
     os.makedirs(dir_name, exist_ok=True)
     base_url = 'https://raw.githubusercontent.com/HybridShivam/Pokemon/master/assets/imagesHQ' 
 
-    print(f'\nDescargando {n} pokemones...\n')
+    print(f'\nDescargando {end - start} pokemones...\n')
     start_time = time.time()
     
-    for i in tqdm(range(1, n + 1), desc='Descargando', unit='img'):
+    for i in tqdm(range(start, end), desc='Descargando', unit='img'):
         file_name = f'{i:03d}.png'
         url = f'{base_url}/{file_name}'
         
@@ -45,9 +45,10 @@ def download_pokemon(n=150, dir_name='pokemon_dataset'):
     
     total_time = time.time() - start_time
     print(f'  Descarga completada en {total_time:.2f} segundos')
-    print(f'  Promedio: {total_time/n:.2f} s/img')
+    print(f'  Promedio: {total_time / (end - start):.2f} s/img')
     
     return total_time
+
 
 def process_pokemon(n=150, dir_origin='pokemon_dataset', dir_name='pokemon_processed'):
     '''
@@ -91,6 +92,11 @@ def process_pokemon(n=150, dir_origin='pokemon_dataset', dir_name='pokemon_proce
                 img_inv = img_inv.resize((width, height), Image.LANCZOS)
 
                 saving_path = os.path.join(dir_name, image)
+
+                # evitar error de permisos
+                if os.path.exists(saving_path):
+                    os.remove(saving_path)
+
                 img_inv.save(saving_path, quality=95)
 
                 processed.append(image)
@@ -110,16 +116,17 @@ def process_pokemon(n=150, dir_origin='pokemon_dataset', dir_name='pokemon_proce
 
     return processed, total_time
 
-def run_threads(n=150, dir_name='pokemon_dataset', dir_processed='pokemon_processed'):
+
+def run_threads(start=1, end=151, dir_name='pokemon_dataset', dir_processed='pokemon_processed', chunk_id=0):
     
     threads = []
 
     tasks = [
-        (download_pokemon, (n, dir_name)),
-        (process_pokemon, (n, dir_name, dir_processed)),
+        (download_pokemon, (start, end, dir_name)),
+        (process_pokemon, (end - start, dir_name, dir_processed)),
     ]
 
-    start = time.time()
+    start_time = time.time()
 
     for func, args in tasks:
         t = threading.Thread(target=func, args=args)
@@ -129,8 +136,55 @@ def run_threads(n=150, dir_name='pokemon_dataset', dir_processed='pokemon_proces
     for t in threads:
         t.join()
 
-    end = time.time()
-    return end - start
+    end_time = time.time()
+    return end_time - start_time
+
+
+def worker(chunk_tuple, resultado_queue):
+    start_chunk, end_chunk, dir_name, dir_processed, chunk_id = chunk_tuple
+    resultado = run_threads(start_chunk, end_chunk, dir_name, dir_processed, chunk_id)
+    resultado_queue.put(resultado)
+
+
+def parallel_processing(data=150, dir_name='pokemon_dataset', dir_processed='pokemon_processed', n_cores=1):
+   
+    # Dividir datos en chunks
+    chunk_size = data // n_cores
+    chunks = []
+    
+    for i in range(n_cores):
+        start = 1 + i * chunk_size
+        end = start + chunk_size if i < n_cores - 1 else data + 1
+        # each chunk is (chunk_data, dir_name, dir_processed, chunk_id)
+        chunks.append((start, end, dir_name, dir_processed, i))
+
+    # Crear procesos manualmente
+    processes = []
+    queue = mp.Queue()
+
+    start_time = time.time()
+    
+    # Iniciar procesos
+    for chunk_data in chunks:
+        p = mp.Process(target=worker, args=(chunk_data, queue))
+        p.start()
+        processes.append(p)
+    
+    # Esperar a que terminen
+    for p in processes:
+        p.join()
+    
+    # Recolectar resultados
+    results = []
+    while not queue.empty():
+        results.append(queue.get())
+    
+    total_time = time.time() - start_time
+    
+    print(f'Tiempo: {total_time:.4f}s')
+    print(f'Cores utilizados: {n_cores}')
+    return total_time
+
 
 if __name__ == '__main__':
 
@@ -150,7 +204,8 @@ if __name__ == '__main__':
     # Resumen final
     #total_time = download_time + processing_time
 
-    total_time = run_threads()
+    #total_time = run_threads()
+    total_time = parallel_processing(data=150, dir_name='pokemon_dataset', dir_processed='pokemon_processed', n_cores=8)
 
     print('='*60)
     print('RESUMEN DE TIEMPOS\n')
